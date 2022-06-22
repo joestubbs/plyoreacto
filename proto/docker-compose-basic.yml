@@ -1,0 +1,23 @@
+version: "3.0"
+
+networks:
+  zmqbasic:
+    driver: bridge
+
+services:
+  broker:
+    container_name: server
+    image: jstubbs/pyzmqevents
+    command: ["/server.py"]
+    ports:
+      - "5559:5559"
+      - "5560:5560"
+    networks:
+      - zmqbasic
+
+  pluginA:
+    container_name: client
+    image: jstubbs/pyzmqevents
+    command: ["/client.py"]
+    networks:
+      - zmqbasic

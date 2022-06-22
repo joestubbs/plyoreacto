@@ -1,0 +1,32 @@
+version: "3.0"
+
+networks:
+  zmqevents:
+    driver: bridge
+
+services:
+  broker:
+    container_name: broker
+    image: jstubbs/pyzmqevents
+    command: ["/broker.py"]
+    # we don't need to bind ports since the plugin containers talk to the broker on the
+    # docker0 interface using the built-in dns based on the service name ("broker").
+    # ports:
+    #   - "5559:5559"
+    #   - "5560:5560"
+    networks:
+      - zmqevents
+
+  pluginA:
+    container_name: pluginA
+    image: jstubbs/pyzmqevents
+    command: ["/pluginA.py"]
+    networks:
+      - zmqevents
+
+  pluginB:
+    container_name: pluginB
+    image: jstubbs/pyzmqevents
+    command: ["/pluginB.py"]
+    networks:
+      - zmqevents
