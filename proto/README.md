@@ -1,3 +1,4 @@
+# Prototypes
 This directory contains sample/prototype code for trying out an approach based on ZMQ. 
 
 There are currently two examples in this directory:
@@ -12,6 +13,22 @@ There are currently two examples in this directory:
 
 All code runs out of the same image (jstubbs/pyzmqevents) by changing the command.
 
-THere is a Makefile to help remember the commands to run.
+There is a Makefile to help remember the commands to run.
 
+## Build the Python Image
+
+Even if you just want to run the Rust engine, you still need to build the Python image. Use the 
+Makefile to do that:
+
+```
+$ make build
+```
+
+## Run the Python Example
+
+You can run the Python broker and the plugins using the docker-compose file:
+
+```
+$ make up
+```
 
