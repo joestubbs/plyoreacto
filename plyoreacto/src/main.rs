@@ -1,11 +1,11 @@
-use std::{thread};
+use std::thread;
 
+mod event_engine;
 mod events;
 mod events_generated;
-mod image_store_plugin;
 mod image_score_plugin;
+mod image_store_plugin;
 mod new_image_plugin;
-mod event_engine;
 
 fn plugin_c(ctx: &mut zmq::Context) {
     let new_events = ctx
@@ -20,17 +20,23 @@ fn plugin_c(ctx: &mut zmq::Context) {
         .set_subscribe(filter.as_bytes())
         .expect("Plugin c could not subscribe to type 1 events on subscription socket");
     println!("plugin c connected to subscription socket.");
-    let sync = ctx.socket(zmq::REQ).expect("Plugin c could not create sync socket.");
-    sync.connect("inproc://sync-5002").expect("Plugin c could not connect to sync socket.");
+    let sync = ctx
+        .socket(zmq::REQ)
+        .expect("Plugin c could not create sync socket.");
+    sync.connect("inproc://sync-5002")
+        .expect("Plugin c could not connect to sync socket.");
     println!("plugin c connected to sync socket.");
 
     thread::spawn(move || {
         // connect to and send sync message on sync socket
         let msg = "ready";
-        sync.send(msg, 0).expect("Plugin c could not send sync message");
+        sync.send(msg, 0)
+            .expect("Plugin c could not send sync message");
         println!("Plugin c sent sync message.");
         // wait for reply from engine
-        let _msg = sync.recv_msg(0).expect("Plugin c got error trying to receive sync reply");
+        let _msg = sync
+            .recv_msg(0)
+            .expect("Plugin c got error trying to receive sync reply");
         println!("Plugin c got sync reply, will now block for messages");
 
         // process 5 events
@@ -86,7 +92,7 @@ fn main() {
 
     // start plugin c
     plugin_c(&mut context);
-    
+
     let total_subscribers = 3;
     let mut sync_sockets = Vec::<zmq::Socket>::new();
 
@@ -97,16 +103,22 @@ fn main() {
     while ready_subscribers < total_subscribers {
         // each subscriber gets its own port
         let port = 5000 + ready_subscribers;
-        // synchronization sockets -- 
-        let sync = context.socket(zmq::REP).expect("Engine could not create synchronization socket");
+        // synchronization sockets --
+        let sync = context
+            .socket(zmq::REP)
+            .expect("Engine could not create synchronization socket");
         let tcp_addr = format!("tcp://*:{}", port);
         let inproc_addr = format!("inproc://sync-{}", port);
-        sync.bind(&tcp_addr).expect("Engine could not bind sync TCP socket.");
+        sync.bind(&tcp_addr)
+            .expect("Engine could not bind sync TCP socket.");
         println!("Engine bound to sync TCP socket on port: {}", &port);
-        sync.bind(&&inproc_addr).expect("Engine could not bind sync inproc socket.");
+        sync.bind(&&inproc_addr)
+            .expect("Engine could not bind sync inproc socket.");
         println!("Engine bound to sync inproc socket: {}", &inproc_addr);
         // receive message from plugin
-        let _msg = sync.recv_msg(0).expect("Engine got error receiving sync message");
+        let _msg = sync
+            .recv_msg(0)
+            .expect("Engine got error receiving sync message");
         println!("Engine got sync message on sync socket {}", &port);
         sync_sockets.push(sync);
         ready_subscribers += 1;
@@ -117,7 +129,8 @@ fn main() {
         let reply = "ok";
         let sync = sync_sockets.pop().expect("Could not get sync socket");
         println!("Engine sending reply message to {}", &msg_sent);
-        sync.send(reply, 0).expect("Engine got error trying to send sync reply.");
+        sync.send(reply, 0)
+            .expect("Engine got error trying to send sync reply.");
         msg_sent += 1;
     }
 

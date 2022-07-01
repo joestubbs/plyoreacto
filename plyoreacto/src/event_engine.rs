@@ -3,8 +3,6 @@ use super::image_store_plugin;
 use super::new_image_plugin;
 use zmq::Socket;
 
-
-
 fn get_outgoing_socket(context: &zmq::Context) -> std::io::Result<Socket> {
     let outgoing = context
         .socket(zmq::PUB)
@@ -19,7 +17,6 @@ fn get_outgoing_socket(context: &zmq::Context) -> std::io::Result<Socket> {
 }
 
 fn get_incoming_socket(context: &zmq::Context) -> std::io::Result<Socket> {
-
     let incoming = context
         .socket(zmq::SUB)
         .expect("Engine could not create incoming socket");
@@ -47,7 +44,6 @@ fn start_plugins(context: &mut zmq::Context) -> std::io::Result<()> {
 }
 
 fn sync_plugins(context: &mut zmq::Context) -> std::io::Result<()> {
-
     let total_subscribers = 3;
     let mut sync_sockets = Vec::<zmq::Socket>::new();
 
@@ -58,16 +54,22 @@ fn sync_plugins(context: &mut zmq::Context) -> std::io::Result<()> {
     while ready_subscribers < total_subscribers {
         // each subscriber gets its own port
         let port = 5000 + ready_subscribers;
-        // synchronization sockets -- 
-        let sync = context.socket(zmq::REP).expect("Engine could not create synchronization socket");
+        // synchronization sockets --
+        let sync = context
+            .socket(zmq::REP)
+            .expect("Engine could not create synchronization socket");
         let tcp_addr = format!("tcp://*:{}", port);
         let inproc_addr = format!("inproc://sync-{}", port);
-        sync.bind(&tcp_addr).expect("Engine could not bind sync TCP socket.");
+        sync.bind(&tcp_addr)
+            .expect("Engine could not bind sync TCP socket.");
         println!("Engine bound to sync TCP socket on port: {}", &port);
-        sync.bind(&&inproc_addr).expect("Engine could not bind sync inproc socket.");
+        sync.bind(&&inproc_addr)
+            .expect("Engine could not bind sync inproc socket.");
         println!("Engine bound to sync inproc socket: {}", &inproc_addr);
         // receive message from plugin
-        let _msg = sync.recv_msg(0).expect("Engine got error receiving sync message");
+        let _msg = sync
+            .recv_msg(0)
+            .expect("Engine got error receiving sync message");
         println!("Engine got sync message on sync socket {}", &port);
         sync_sockets.push(sync);
         ready_subscribers += 1;
@@ -78,12 +80,12 @@ fn sync_plugins(context: &mut zmq::Context) -> std::io::Result<()> {
         let reply = "ok";
         let sync = sync_sockets.pop().expect("Could not get sync socket");
         println!("Engine sending reply message to {}", &msg_sent);
-        sync.send(reply, 0).expect("Engine got error trying to send sync reply.");
+        sync.send(reply, 0)
+            .expect("Engine got error trying to send sync reply.");
         msg_sent += 1;
     }
 
     Ok(())
-
 }
 
 pub fn event_engine() -> std::io::Result<()> {
@@ -100,7 +102,7 @@ pub fn event_engine() -> std::io::Result<()> {
 
     // this call blocks forever
     let _result = zmq::proxy(&incoming, &outgoing)
-    .expect("Engine got error running proxy; socket was closed?");
+        .expect("Engine got error running proxy; socket was closed?");
 
     // should never get here
     Ok(())
