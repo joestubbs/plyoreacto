@@ -13,3 +13,6 @@ path = "src/main.rs"
 
 [dependencies]
 zmq = "0.9"
+flatbuffers = "2.1.2"
+uuid = { version = "0.8", features = ["v4"] }
+rand = "0.8.5"

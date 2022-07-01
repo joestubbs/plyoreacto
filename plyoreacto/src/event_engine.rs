@@ -1,62 +1,11 @@
-use std::{thread};
+use super::image_score_plugin;
+use super::image_store_plugin;
+use super::new_image_plugin;
+use zmq::Socket;
 
-mod events;
-mod events_generated;
-mod image_store_plugin;
-mod image_score_plugin;
-mod new_image_plugin;
-mod event_engine;
 
-fn plugin_c(ctx: &mut zmq::Context) {
-    let new_events = ctx
-        .socket(zmq::SUB)
-        .expect("Plugin c could not create subscription socket.");
-    new_events
-        .connect("inproc://events")
-        .expect("Plugin c could not connect to subscriptions socket");
-    // subscribe to type 1 events
-    let filter = "type:1";
-    new_events
-        .set_subscribe(filter.as_bytes())
-        .expect("Plugin c could not subscribe to type 1 events on subscription socket");
-    println!("plugin c connected to subscription socket.");
-    let sync = ctx.socket(zmq::REQ).expect("Plugin c could not create sync socket.");
-    sync.connect("inproc://sync-5002").expect("Plugin c could not connect to sync socket.");
-    println!("plugin c connected to sync socket.");
 
-    thread::spawn(move || {
-        // connect to and send sync message on sync socket
-        let msg = "ready";
-        sync.send(msg, 0).expect("Plugin c could not send sync message");
-        println!("Plugin c sent sync message.");
-        // wait for reply from engine
-        let _msg = sync.recv_msg(0).expect("Plugin c got error trying to receive sync reply");
-        println!("Plugin c got sync reply, will now block for messages");
-
-        // process 5 events
-        let mut count = 0;
-        while count < 5 {
-            let msg = new_events.recv_msg(0).expect("Error receiving message");
-            let msgs = msg.as_str().expect("couln't convert msg to string");
-            println!("plugin c got message {:?}", msgs);
-            count += 1;
-        }
-    });
-}
-
-fn main() {
-    println!("Starting main engine");
-
-    event_engine::event_engine().expect("Error from engine");
-
-    // *---------------------------------------------
-    // *
-    // * DEMO CODE
-    // *
-    // * --------------------------------------------
-    let mut context = zmq::Context::new();
-
-    // socket used by the engine for outgoing events
+fn get_outgoing_socket(context: &zmq::Context) -> std::io::Result<Socket> {
     let outgoing = context
         .socket(zmq::PUB)
         .expect("Engine could not create outgoing socket");
@@ -66,8 +15,11 @@ fn main() {
     outgoing
         .bind("inproc://events")
         .expect("Engine could not bind outgoing inproc socket");
+    Ok(outgoing)
+}
 
-    // socket used by the engine for incoming events
+fn get_incoming_socket(context: &zmq::Context) -> std::io::Result<Socket> {
+
     let incoming = context
         .socket(zmq::SUB)
         .expect("Engine could not create incoming socket");
@@ -78,15 +30,24 @@ fn main() {
         .bind("inproc://messages")
         .expect("Engine could not bind incoming inproc socket");
     // subscribe to all events
-    // let filter = "type";
     let filter = String::new();
     incoming
         .set_subscribe(filter.as_bytes())
         .expect("Engine could not subscribe to all events on incoming socket");
+    Ok(incoming)
+}
 
-    // start plugin c
-    plugin_c(&mut context);
-    
+fn start_plugins(context: &mut zmq::Context) -> std::io::Result<()> {
+    // call all plugins
+    image_score_plugin::image_scored_plugin(context);
+    image_store_plugin::image_stored_plugin(context);
+    new_image_plugin::new_image_plugin(context);
+
+    Ok(())
+}
+
+fn sync_plugins(context: &mut zmq::Context) -> std::io::Result<()> {
+
     let total_subscribers = 3;
     let mut sync_sockets = Vec::<zmq::Socket>::new();
 
@@ -121,8 +82,26 @@ fn main() {
         msg_sent += 1;
     }
 
-    // start the zmq proxy
-    println!("Engine starting the proxy...");
+    Ok(())
+
+}
+
+pub fn event_engine() -> std::io::Result<()> {
+    println!("Starting EVENT engine");
+    // zmq context to be used by this engine and all plugin threads
+    let mut context = zmq::Context::new();
+
+    // incoming and outgoing sockets for the engine
+    let outgoing = get_outgoing_socket(&mut context).expect("could not create outgoing socket");
+    let incoming = get_incoming_socket(&mut context).expect("could not create incoming socket");
+
+    start_plugins(&mut context).expect("Could not start plugins");
+    sync_plugins(&mut context).expect("Could not sync plugins");
+
+    // this call blocks forever
     let _result = zmq::proxy(&incoming, &outgoing)
-        .expect("Engine got error running proxy; socket was closed?");
+    .expect("Engine got error running proxy; socket was closed?");
+
+    // should never get here
+    Ok(())
 }

@@ -27,13 +27,27 @@ def main():
     outgoing.connect(f"tcp://{ip}:5559")
     print(f"{datetime.datetime.now()}: plugin B connected to sockets")
 
+    # Synchronization -----
     # sleep to make sure broker and plugins are running... need to fix this with proper sync
-    time.sleep(10)
-    print(f"{datetime.datetime.now()}: plugin B waking up from initial sleep...")
+    # time.sleep(10)
+    # print(f"{datetime.datetime.now()}: plugin B waking up from initial sleep...")
+
+    # This is the socket used by clients for synchronization; it is a REQ type for all plugins.
+    sync = context.socket(zmq.REQ)
+    # Plugins connect to sync sockets on different ports; the numbering is 0-based, starting at 5000.
+    sync.connect(f"tcp://{ip}:5001")
+    print(f"{datetime.datetime.now()}: plugin B connected to sync socket.")
+    sync.send_string("ok")
+    print(f"{datetime.datetime.now()}: plugin B sent message on sync socket.")
+    # wait for reply
+    sync.recv_string()
+    print(f"{datetime.datetime.now()}: plugin B received reply on sync socket.")
+
+
     # Send initial type 1 event to get everything going
     initial_event_msg = "type:1,value:0"
     outgoing.send_string(initial_event_msg)
-    print(f"{datetime.datetime.now()}: plugin B sent initial message")
+    print(f"{datetime.datetime.now()}: plugin B sent initial message; value:0")
 
     # Process 5 new events
     total = 0

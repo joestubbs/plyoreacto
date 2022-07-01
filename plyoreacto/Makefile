@@ -4,7 +4,10 @@ build:
 down:
 	docker-compose down
 
-up: 
+up-demo: 
 	docker-compose up
 
+up-engine:
+	docker-compose up broker
+	
 all: down build up

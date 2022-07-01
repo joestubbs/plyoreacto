@@ -22,10 +22,19 @@ def main():
 
     # This is the socket used by clients for publishing mew events; it is a PUB type for all plugins.
     outgoing = context.socket(zmq.PUB)
-    # outgoing.bind(f"tcp://127.0.0.1:5559")
-    # outgoing.bind(f"tcp://172.17.0.1:5559")
     outgoing.connect(f"tcp://{ip}:5559")
-    print(f"{datetime.datetime.now()}: plugin A connected to sockets")
+    print(f"{datetime.datetime.now()}: plugin A connected to both events sockets")
+
+    # This is the socket used by clients for synchronization; it is a REQ type for all plugins.
+    sync = context.socket(zmq.REQ)
+    # Plugins connect to sync sockets on different ports; the numbering is 0-based, starting at 5000.
+    sync.connect(f"tcp://{ip}:5000")
+    print(f"{datetime.datetime.now()}: plugin A connected to sync socket.")
+    sync.send_string("ok")
+    print(f"{datetime.datetime.now()}: plugin A sent message on sync socket.")
+    # wait for reply
+    sync.recv_string()
+    print(f"{datetime.datetime.now()}: plugin A received reply on sync socket.")
 
     # Process 5 new events
     total = 0

@@ -1,0 +1,53 @@
+// events.fbs
+// use to generate events_generated.rs with: flatc --rust -o src events.fbs 
+namespace events;
+
+// Create a union of all event types to use as the root type; from the documentation, this seems to be
+// the best way to handle sending one of a possible set of messages over a network.
+// cf., https://google.github.io/flatbuffers/md__schemas.html
+union EventType {NewImageEvent, ImageScoredEvent, ImageStoredEvent, ImageDeletedEvent}
+
+
+// The NewImageEvent 
+table NewImageEvent {
+
+  message_type:string = "new_image";
+  image_uuid:string;
+  image_format:string;
+  image:[ubyte];
+
+}
+
+// represents the probability that an image has a specific label.
+table ImageLabelScore {
+  label:string;
+  probability:float;
+}
+
+table ImageScoredEvent {
+  message_type:string = "image_scored";
+  image_uuid:string;
+  scores:[ImageLabelScore];
+}
+
+table ImageStoredEvent {
+
+  message_type:string = "image_stored";
+  image_uuid:string;
+
+}
+
+table ImageDeletedEvent {
+
+  message_type:string = "image_deleted";
+  image_uuid:string;
+
+}
+
+// the root_type needs to be a table, not a union, so we wrap it up like this
+table Event {
+  event:EventType;  
+}
+
+root_type Event;
+
