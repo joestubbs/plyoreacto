@@ -281,7 +281,7 @@ mod test {
         let image_uuid = Uuid::new_v4();
         let mut scores = Vec::<ImageScore>::new();
         scores.push(ImageScore {
-            label: "laborador".to_string(),
+            label: "labrador".to_string(),
             probability: 0.98,
         });
         scores.push(ImageScore {

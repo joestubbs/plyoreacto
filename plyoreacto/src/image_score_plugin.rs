@@ -85,7 +85,7 @@ pub fn image_scored_plugin(ctx: &mut zmq::Context) {
             let prob = rng.gen::<f32>();
             let mut scores = Vec::<ImageScore>::new();
             scores.push(ImageScore {
-                label: "laborador".to_string(),
+                label: "labrador".to_string(),
                 probability: prob,
             });
             send_image_scored_event(&mut new_messages, &mut bldr, &image_uuid, scores)

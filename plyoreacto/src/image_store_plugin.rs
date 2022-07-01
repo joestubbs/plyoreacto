@@ -69,35 +69,59 @@ pub fn image_stored_plugin(ctx: &mut zmq::Context) {
             if event_type != "ImageScoredEvent" {
                 continue;
             }
-            let image_uuid = event
+
+            let image_scored_event = event
                 .event_as_image_scored_event()
-                .unwrap()
-                .image_uuid()
-                .unwrap();
+                .expect("could not cast event to ImageScoredEvent");
+            let image_uuid = image_scored_event.image_uuid().unwrap();
             println!(
                 "Image stored plugin got ImageScored event for image {}",
                 image_uuid
             );
-
-            // Flip a coin to decide whether to store the image
-            // generate a random probability:
-            let prob = rng.gen::<f32>();
-            // delete the image
-            if prob < 0.5 {
-                send_image_deleted_event(&mut new_messages, &mut bldr, image_uuid)
-                    .expect("could not sent image deleted event");
-                println!(
-                    "Image stored plugin sent an image deleted event for image {}",
-                    image_uuid
-                );
-            } else {
-                send_image_stored_event(&mut new_messages, &mut bldr, image_uuid)
-                    .expect("could not sent image deleted event");
-                println!(
-                    "Image stored plugin sent an image stored event for image {}",
-                    image_uuid
-                );
+            // If the probability of the image containing a laborador is > 0.5, we keep the image
+            let scores = image_scored_event
+                .scores()
+                .expect("could not get image scores");
+            for score in scores {
+                if score.label().expect("could not get score label") == "labrador" {
+                    // found the labrador score, check the probability
+                    if score.probability() < 0.5 {
+                        send_image_deleted_event(&mut new_messages, &mut bldr, image_uuid)
+                            .expect("could not sent image deleted event");
+                        println!(
+                            "Image stored plugin sent an image deleted event for image {}",
+                            image_uuid
+                        );
+                    } else {
+                        send_image_stored_event(&mut new_messages, &mut bldr, image_uuid)
+                            .expect("could not sent image deleted event");
+                        println!(
+                            "Image stored plugin sent an image stored event for image {}",
+                            image_uuid
+                        );
+                    }
+                }
             }
+
+            // Another approach: Just flip a coin to decide whether to store the image
+            // generate a random probability:
+            // let prob = rng.gen::<f32>();
+            // // delete the image
+            // if prob < 0.5 {
+            //     send_image_deleted_event(&mut new_messages, &mut bldr, image_uuid)
+            //         .expect("could not sent image deleted event");
+            //     println!(
+            //         "Image stored plugin sent an image deleted event for image {}",
+            //         image_uuid
+            //     );
+            // } else {
+            //     send_image_stored_event(&mut new_messages, &mut bldr, image_uuid)
+            //         .expect("could not sent image deleted event");
+            //     println!(
+            //         "Image stored plugin sent an image stored event for image {}",
+            //         image_uuid
+            //     );
+            // }
             count += 1;
         }
     });
