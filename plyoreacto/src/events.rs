@@ -9,12 +9,33 @@ use super::events_generated::events::{
     ImageStoredEventArgs, NewImageEvent, NewImageEventArgs,
 };
 
+pub fn get_event_type_bytes_filter(event_type: &str) -> Result<[u8; 20], String> {
+    //TODO -- generate these programmatically
+    if event_type == "NewImageEvent" {
+        // first bytes of NewImageEvent
+        let filter_bytes: [u8; 20] = [12, 0, 0, 0, 8, 0, 12, 0, 7, 0, 8, 0, 8, 0, 0, 0, 0, 0, 0, 1];
+        return Ok(filter_bytes);
+    } else if event_type == "ImageScoredEvent" {
+        let filter_bytes: [u8; 20] = [12, 0, 0, 0, 8, 0, 14, 0, 7, 0, 8, 0, 8, 0, 0, 0, 0, 0, 0, 2];
+        return Ok(filter_bytes);
+    } else if event_type == "ImageStoredEvent" {
+        // first bytes of ImageStoredEvent (TODO)
+        let filter_bytes: [u8; 20] = [12, 0, 0, 0, 8, 0, 12, 0, 7, 0, 8, 0, 8, 0, 0, 0, 0, 0, 0, 3];
+        return Ok(filter_bytes);
+    } else if event_type == "ImageDeletedEvent" {
+        // first bytes of ImageDeletedEvent (TODO)
+        let filter_bytes: [u8; 20] = [12, 0, 0, 0, 8, 0, 12, 0, 7, 0, 8, 0, 8, 0, 0, 0, 0, 0, 0, 4];
+        return Ok(filter_bytes);
+    }
+    Err("Invalid event_type".to_string())
+}
+
 pub fn send_new_image_event(
     msg_socket: &mut Socket,
     bldr: &mut FlatBufferBuilder,
     image_uuid: &str,
     image_format: &str,
-    image: &Vec<u8>,
+    image: &[u8],
 ) -> Result<(), std::io::Error> {
     bldr.reset();
 
@@ -60,7 +81,7 @@ pub fn send_image_scored_event(
         let im_score = ImageLabelScore::create(
             bldr,
             &ImageLabelScoreArgs {
-                label: label,
+                label,
                 probability: score.probability,
             },
         );
@@ -154,8 +175,8 @@ pub fn send_image_deleted_event(
 //     Ok(event)
 // }
 
-pub fn bytes_to_event(msg_bytes: &Vec<u8>) -> std::io::Result<Event> {
-    let event = root_as_event(&msg_bytes).expect("could not deserialize bytes");
+pub fn bytes_to_event(msg_bytes: &[u8]) -> std::io::Result<Event> {
+    let event = root_as_event(msg_bytes).expect("could not deserialize bytes");
     Ok(event)
 }
 
@@ -245,7 +266,7 @@ mod test {
         // write data to a file
         let mut file = OpenOptions::new()
             .write(true)
-            .open("/home/jstubbs/Documents/image_stored2.msg")?;
+            .open("/home/jstubbs/Documents/image_stored1.msg")?;
         file.write_all(bldr.finished_data())
             .expect("could not write data");
 
@@ -254,7 +275,7 @@ mod test {
 
     #[test]
     fn test_read_image_stored_event_from_file() -> std::io::Result<()> {
-        let msg_bytes = fs::read("/home/jstubbs/Documents/image_stored2.msg")?;
+        let msg_bytes = fs::read("/home/jstubbs/Documents/image_stored1.msg")?;
         let msg = root_as_event(&msg_bytes).expect("could not deserialize bytes");
 
         let event_type = msg.event_type();
@@ -374,7 +395,7 @@ mod test {
         // write data to a file
         let mut file = OpenOptions::new()
             .write(true)
-            .open("/home/jstubbs/Documents/image_deleted2.msg")?;
+            .open("/home/jstubbs/Documents/image_deleted1.msg")?;
         file.write_all(bldr.finished_data())
             .expect("could not write data");
 
@@ -383,7 +404,7 @@ mod test {
 
     #[test]
     fn test_read_image_deleted_event_from_file() -> std::io::Result<()> {
-        let msg_bytes = fs::read("/home/jstubbs/Documents/image_deleted2.msg")?;
+        let msg_bytes = fs::read("/home/jstubbs/Documents/image_deleted1.msg")?;
         let msg = root_as_event(&msg_bytes).expect("could not deserialize bytes");
 
         let event_type = msg.event_type();

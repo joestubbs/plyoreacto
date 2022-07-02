@@ -5,9 +5,13 @@
 use super::events::send_new_image_event;
 use flatbuffers::FlatBufferBuilder;
 use std::thread;
-use uuid;
+
+// try having the engine create the threads, pass a closure that first does the syn and then calls
+// the plugin function to the spawn, and
+// also do biolerplate code in the engine, then pass the function: new_messages_socket and the new_events
 
 pub fn new_image_plugin(ctx: &mut zmq::Context) {
+    // Biolerplate --------------------------------
     let mut new_messages = ctx
         .socket(zmq::PUB)
         .expect("New Image plugin could not create messages socket.");
@@ -21,6 +25,7 @@ pub fn new_image_plugin(ctx: &mut zmq::Context) {
     sync.connect("inproc://sync-5000")
         .expect("New Image plugin could not connect to sync socket.");
     println!("New Image plugin connected to sync socket.");
+    // Boilerplate -------------------------------
 
     thread::spawn(move || {
         // connect to and send sync message on sync socket
@@ -49,7 +54,10 @@ pub fn new_image_plugin(ctx: &mut zmq::Context) {
             )
             .expect("Could not send a new message event");
 
-            println!("New Image plugin sent message {:?}", uuid);
+            println!(
+                "(NEW IMAGE -- {}) New Image plugin sent message {:?}",
+                uuid, uuid
+            );
             count += 1;
         }
     });

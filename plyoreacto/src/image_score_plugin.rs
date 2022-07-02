@@ -2,7 +2,7 @@
 //! This plugin subscribes to NewImageEvent messages and published ImageScoredEvent messages.
 //!
 
-use crate::events::bytes_to_event;
+use crate::events::{bytes_to_event, get_event_type_bytes_filter};
 use flatbuffers::FlatBufferBuilder;
 use rand::Rng;
 use std::thread;
@@ -19,18 +19,20 @@ pub fn image_scored_plugin(ctx: &mut zmq::Context) {
         .expect("Image stored plugin could not connect to subscriptions socket");
     println!("Image Scored plugin connected to messages socket.");
 
-    // socket to subcribe to events
+    // socket to subscribe to events
     let new_events = ctx
         .socket(zmq::SUB)
         .expect("Image scored plugin could not create subscription socket.");
     new_events
         .connect("inproc://events")
         .expect("Image scored plugin could not connect to subscriptions socket");
-    // TODO -- subscribe only to new image events
-    let filter = String::new();
+    // Subscribe only to new image events
+    // Subscribe only to image scored events
+    let filter_bytes = get_event_type_bytes_filter("NewImageEvent")
+        .expect("could not get NewImageEvent bytes filter");
     new_events
-        .set_subscribe(filter.as_bytes())
-        .expect("Image scored plugin could not subscribe to type 1 events on subscription socket");
+        .set_subscribe(&filter_bytes)
+        .expect("Image stored plugin could not subscribe to type 1 events on subscription socket");
     println!("Image scored plugin connected to subscription socket.");
     let sync = ctx
         .socket(zmq::REQ)
@@ -61,16 +63,21 @@ pub fn image_scored_plugin(ctx: &mut zmq::Context) {
         while count < 5 {
             let msg_bytes = new_events.recv_bytes(0).expect("Error receiving message");
             let event = bytes_to_event(&msg_bytes).expect("Error getting event");
-            // let event = read_next_event(&new_events).expect("could not get next event.");
-
             // check type of event -- TODO: remove this when subscriptions work
             let event_type = event
                 .event_type()
                 .variant_name()
                 .expect("could not get event type");
             if event_type != "NewImageEvent" {
+                println!("*********** Image score plugin got unexpected message!!! ***********");
+                println!("Message variant: {}", event_type);
+                println!("Message bytes: {:?}", &msg_bytes);
+                println!("**********                                               ************");
                 continue;
-            }
+            };
+
+            // println!("\nImage score plugin got NEW IMAGE message;\nbytes: {:?}\n", &msg_bytes);
+
             let image_uuid = event
                 .event_as_new_image_event()
                 .unwrap()
@@ -83,16 +90,15 @@ pub fn image_scored_plugin(ctx: &mut zmq::Context) {
             // generate an image scored event
             // generate a random probability:
             let prob = rng.gen::<f32>();
-            let mut scores = Vec::<ImageScore>::new();
-            scores.push(ImageScore {
+            let scores = vec![ImageScore {
                 label: "labrador".to_string(),
                 probability: prob,
-            });
-            send_image_scored_event(&mut new_messages, &mut bldr, &image_uuid, scores)
+            }];
+            send_image_scored_event(&mut new_messages, &mut bldr, image_uuid, scores)
                 .expect("Could not send image scored event");
             count += 1;
             println!(
-                "Image scored plugin sent Image Scored event for image: {}; prob: {}",
+                "(IMAGE SCORED -- {}) Image scored plugin sent Image Scored event for image: {}; prob: {}", image_uuid, 
                 image_uuid, prob
             );
         }

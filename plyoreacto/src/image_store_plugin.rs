@@ -6,9 +6,10 @@
 use std::thread;
 
 use flatbuffers::FlatBufferBuilder;
-use rand::Rng;
 
-use crate::events::{bytes_to_event, send_image_deleted_event, send_image_stored_event};
+use crate::events::{
+    bytes_to_event, get_event_type_bytes_filter, send_image_deleted_event, send_image_stored_event,
+};
 
 pub fn image_stored_plugin(ctx: &mut zmq::Context) {
     // socket to publish message to
@@ -27,11 +28,13 @@ pub fn image_stored_plugin(ctx: &mut zmq::Context) {
     new_events
         .connect("inproc://events")
         .expect("Image stored plugin could not connect to subscriptions socket");
-    // TODO -- subscribe only to image scored events
-    let filter = String::new();
+    // Subscribe only to image scored events
+    let filter_bytes = get_event_type_bytes_filter("ImageScoredEvent")
+        .expect("could not get ImageScoredEvent bytes filter");
     new_events
-        .set_subscribe(filter.as_bytes())
+        .set_subscribe(&filter_bytes)
         .expect("Image stored plugin could not subscribe to type 1 events on subscription socket");
+
     println!("Image stored plugin connected to subscription socket.");
     let sync = ctx
         .socket(zmq::REQ)
@@ -54,7 +57,7 @@ pub fn image_stored_plugin(ctx: &mut zmq::Context) {
 
         let mut bldr = FlatBufferBuilder::new();
         // for generating random probabilities
-        let mut rng = rand::thread_rng();
+        // let mut rng = rand::thread_rng();
 
         // process 5 events
         let mut count = 0;
@@ -67,8 +70,10 @@ pub fn image_stored_plugin(ctx: &mut zmq::Context) {
                 .variant_name()
                 .expect("could not get event type");
             if event_type != "ImageScoredEvent" {
+                println!("******** Image store plugin got unexpected message!!!**********");
                 continue;
             }
+            // println!("\nImage stored plugin got message bytes: {:?}\n", &msg_bytes);
 
             let image_scored_event = event
                 .event_as_image_scored_event()
@@ -89,14 +94,14 @@ pub fn image_stored_plugin(ctx: &mut zmq::Context) {
                         send_image_deleted_event(&mut new_messages, &mut bldr, image_uuid)
                             .expect("could not sent image deleted event");
                         println!(
-                            "Image stored plugin sent an image deleted event for image {}",
+                            "(IMAGE DELETED -- {}) Image stored plugin sent an image deleted event for image {}", image_uuid,
                             image_uuid
                         );
                     } else {
                         send_image_stored_event(&mut new_messages, &mut bldr, image_uuid)
                             .expect("could not sent image deleted event");
                         println!(
-                            "Image stored plugin sent an image stored event for image {}",
+                            "(IMAGE STORED -- {}) Image stored plugin sent an image stored event for image {}", image_uuid, 
                             image_uuid
                         );
                     }

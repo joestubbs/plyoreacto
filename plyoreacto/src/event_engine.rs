@@ -63,7 +63,7 @@ fn sync_plugins(context: &mut zmq::Context) -> std::io::Result<()> {
         sync.bind(&tcp_addr)
             .expect("Engine could not bind sync TCP socket.");
         println!("Engine bound to sync TCP socket on port: {}", &port);
-        sync.bind(&&inproc_addr)
+        sync.bind(&inproc_addr)
             .expect("Engine could not bind sync inproc socket.");
         println!("Engine bound to sync inproc socket: {}", &inproc_addr);
         // receive message from plugin
@@ -94,8 +94,8 @@ pub fn event_engine() -> std::io::Result<()> {
     let mut context = zmq::Context::new();
 
     // incoming and outgoing sockets for the engine
-    let outgoing = get_outgoing_socket(&mut context).expect("could not create outgoing socket");
-    let incoming = get_incoming_socket(&mut context).expect("could not create incoming socket");
+    let outgoing = get_outgoing_socket(&context).expect("could not create outgoing socket");
+    let incoming = get_incoming_socket(&context).expect("could not create incoming socket");
 
     start_plugins(&mut context).expect("Could not start plugins");
     sync_plugins(&mut context).expect("Could not sync plugins");

@@ -2,6 +2,8 @@ use std::thread;
 
 mod event_engine;
 mod events;
+
+#[allow(dead_code, unused_imports)]
 mod events_generated;
 mod image_score_plugin;
 mod image_store_plugin;
@@ -112,7 +114,7 @@ fn main() {
         sync.bind(&tcp_addr)
             .expect("Engine could not bind sync TCP socket.");
         println!("Engine bound to sync TCP socket on port: {}", &port);
-        sync.bind(&&inproc_addr)
+        sync.bind(&inproc_addr)
             .expect("Engine could not bind sync inproc socket.");
         println!("Engine bound to sync inproc socket: {}", &inproc_addr);
         // receive message from plugin
