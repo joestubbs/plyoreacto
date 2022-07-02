@@ -55,6 +55,12 @@ fn plugin_c(ctx: &mut zmq::Context) {
 fn main() {
     println!("Starting main engine");
 
+    // * --------------------------------------------
+    // * 
+    // * EXAMPLE ENGINE
+    // * 
+    // * Comment the line below to run the demo code
+    // * -----------------------------------
     event_engine::event_engine().expect("Error from engine");
 
     // *---------------------------------------------
