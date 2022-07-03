@@ -8,6 +8,37 @@ use super::new_image_plugin;
 use flatbuffers::FlatBufferBuilder;
 use zmq::Socket;
 
+// Basic structure of a plugin configuration.
+struct PluginConfig<'a> {
+    // Every plugin gets a unique id
+    plugin_id: i32,
+    // The set of events the plugin wants to subscribe to; str's must match event names.
+    subscriptions: &'a [&'a str],
+    // the start function for the plugin
+    // todo -- would be nice to centralize this function signature
+    start_function: fn(&mut Socket, &mut Socket, &mut FlatBufferBuilder) -> std::io::Result<()>,
+}
+
+// Constant structure of all plugins defined in the system
+// Update this config whenever changes need to be made to the plugins that will be run.
+const PLUGINS: [PluginConfig; 3] = [
+    PluginConfig {
+        plugin_id: 0,
+        subscriptions: &[],
+        start_function: new_image_plugin::start,
+    },
+    PluginConfig {
+        plugin_id: 1,
+        subscriptions: &["NewImageEvent"],
+        start_function: image_score_plugin::start,
+    },
+    PluginConfig {
+        plugin_id: 2,
+        subscriptions: &["ImageScoredEvent"],
+        start_function: image_store_plugin::start,
+    },
+];
+
 fn get_outgoing_socket(context: &zmq::Context) -> std::io::Result<Socket> {
     let outgoing = context
         .socket(zmq::PUB)
@@ -42,21 +73,21 @@ fn get_incoming_socket(context: &zmq::Context) -> std::io::Result<Socket> {
 fn start_plugin<F>(
     ctx: &zmq::Context,
     plugin_id: i32,
-    subscriptions: &[String],
-    f: F,
+    subscriptions: &[&str],
+    start: F,
 ) -> std::io::Result<()>
 where
+    // todo -- would be good to centralize this signature with the one defined earlier for the
+    // plugin config.
     F: FnOnce(&mut Socket, &mut Socket, &mut FlatBufferBuilder) -> std::io::Result<()>
         + std::marker::Send
         + 'static,
 {
     // Create the socket that plugin will use to publish new events
-    let mut pub_socket = ctx
-        .socket(zmq::PUB)
-        .expect("could not create messages socket.");
+    let mut pub_socket = ctx.socket(zmq::PUB).expect("could not create pub socket.");
     pub_socket
         .connect("inproc://messages")
-        .expect("could not connect to subscriptions socket");
+        .expect("could not connect to pub socket");
     println!("plugin {} connected to pub socket.", plugin_id);
 
     // Create the socket that plugin will use to subscribe to events
@@ -104,7 +135,7 @@ where
 
         // now execute the actual plugin function
         println!("Executing start function for plugin {}", plugin_id);
-        f(&mut pub_socket, &mut sub_socket, &mut bldr)
+        start(&mut pub_socket, &mut sub_socket, &mut bldr)
             .expect("got error executing plugin start function");
     });
 
@@ -157,23 +188,19 @@ fn sync_plugins(context: zmq::Context) -> std::io::Result<()> {
 }
 
 fn start_plugins(context: zmq::Context) -> std::io::Result<()> {
-    // start each plugin
-    start_plugin(&context, 0, &[], new_image_plugin::start).expect("could not start plugin");
-    start_plugin(
-        &context,
-        1,
-        &["NewImageEvent".to_string()],
-        image_score_plugin::start,
-    )
-    .expect("could not start plugin");
-    start_plugin(
-        &context,
-        2,
-        &["ImageScoredEvent".to_string()],
-        image_store_plugin::start,
-    )
-    .expect("could not start plugin");
-
+    // call start_plugin with the zmq context and the config for each plugin,
+    // as defined in the PLUGINS constant
+    for plugin in PLUGINS {
+        start_plugin(
+            &context,
+            plugin.plugin_id,
+            plugin.subscriptions,
+            plugin.start_function,
+        )
+        .expect("could not start plugin");
+    }
+    // once all plugins have been started, sync them with individual messages on the
+    // REQ-REP sockets
     sync_plugins(context).unwrap();
     Ok(())
 }
