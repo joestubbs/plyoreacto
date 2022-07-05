@@ -1,11 +1,16 @@
 # Rust Engine
-This directory contains the code for the Rust engine.
+
+This directory contains the code for the Rust engine and Rust example plugins. This is where new 
+development will take place going forward.
+
 
 ## Prerequisites
 
-To build, need to install the dependencies:
+To build the Rust code, you will need to install a recent version of `libzmq` (the ZeroMQ C++ library).
+Version 4.1 (or newer) should suffice. 
 
-On Ubuntu, 
+On Debian/Ubuntu, you can get it by running this command:
+
 ```
 $ apt-get install libzmq3-dev
 ```
