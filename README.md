@@ -19,11 +19,11 @@ Flatbuffers. For this reason, `flatbuffers` appears as a Cargo dependency.
 ## Repository Structure and Name
 
 The current Rust implementation of the engine and example Rust plugins live in the `plyoreacto` directory within the project root. This is where new development will take place going forward.
-Look in this directory for instructions on building the Rust code and running the example. 
+Look in this directory for instructions on building the Rust code and running the "example". 
 
 The `proto` directory contains an initial prototype of the engine, written in Python, as well as two prototype Python plugins. The Python engine can pretty much be ignored at this point. The plugins can 
 still be used when running the "demo" (as apposed to the "example"), but soon those will also be 
 replaced. Look in this directory for instructions on building the Python images. 
 
-The name is a portmanteau of "plyo", coming from the Greek, meaning to increase, and
-"reactor", as in the reactor pattern, which was an inspiration for the design, but is also meant to suggest the flexibility (or pliability) provided by supporting multiple programming languages.
+The name is a portmanteau of "plyo", the Greek term meaning "to increase", and
+"reactor", as in the [reactor pattern](https://en.wikipedia.org/wiki/Reactor_pattern), which was an inspiration for the design, but is also meant to suggest the flexibility ("pliability") provided by supporting multiple programming languages.

@@ -1,4 +1,4 @@
-# Rust Engine
+# Rust Engine and Plugins
 
 This directory contains the code for the Rust engine and Rust example plugins. This is where new 
 development will take place going forward.
@@ -15,7 +15,8 @@ On Debian/Ubuntu, you can get it by running this command:
 $ apt-get install libzmq3-dev
 ```
 
-## Running the example engine
+## Running the example
+
 The project currently includes an example with 3 plugins, all written in Rust and
 compiled into the main engine, that use inproc sockets for communication and that 
 pass flatbuffers messages. It should be enough to build the Rust engine Docker image and run it to see the full example. Using the make commands:
@@ -43,7 +44,26 @@ $ make up-demo
 ## Development tasks
 A collection of reminders for making code changes..
 
+### Getting `flatc`
+
+To make changes to the flatbuffers messages and regenerate the Rust code, you need the `flatc` binary. You
+can build on your own machine. You can do that on Linux with the following:
+
+1. clone the repo: 
+  git clone https://github.com/google/flatbuffers.git
+
+2. cd into coderepo and build with cmake:
+  cmake -G "Unix Makefiles"
+  make
+
+3. Link binary and set permissions
+  sudo ln -s /home/jstubbs/software/flatbuff/flatbuffers/flatc /usr/local/bin/flatc  
+  chmod +x /home/jstubbs/software/flatbuff/flatbuffers/flatc
+
+
+
 ### Updating the flatbuffers messages
+
 The flatbuffers messages schema is defined in the `events.fsb` file. To change the message formats do the following:
 
 1. Edit the `events.fsb` file with your changes.
