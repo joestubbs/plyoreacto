@@ -1,5 +1,6 @@
 # Prototypes
 This directory contains sample/prototype code for trying out an approach based on ZMQ. 
+**NOTE: Code in this directory is no longer maintained; commands mentioned below might not work**
 
 There are currently two examples in this directory:
 1) docker-compose-basic.yml -- This is just the basic pub-sub weather station example from the zmq docs.

@@ -36,7 +36,7 @@ pub fn start(
             "Image stored plugin got ImageScored event for image {}",
             image_uuid
         );
-        // If the probability of the image containing a laborador is > 0.5, we keep the image
+        // If the probability of the image containing a laborador is >= 0.5, we keep the image
         let scores = image_scored_event
             .scores()
             .expect("could not get image scores");
