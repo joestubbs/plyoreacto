@@ -2,6 +2,8 @@ use crate::events_generated::events::{
     Event, EventArgs, EventType, ImageLabelScore, ImageScoredEvent, ImageScoredEventArgs,
 };
 use flatbuffers::{FlatBufferBuilder, WIPOffset};
+use std::collections::HashSet;
+use uuid::Uuid;
 use zmq::Socket;
 
 use super::events_generated::events::{
@@ -9,38 +11,121 @@ use super::events_generated::events::{
     ImageStoredEventArgs, NewImageEvent, NewImageEventArgs,
 };
 
+pub struct Ex {
+    name: String,
+    // name: [&'a i32],
+    // image: [i32],
+    // image: [u8],
+    // image: String,
+}
+
+pub fn example() -> Vec<Ex> {
+    let x = String::from("Joe");
+    let y = String::from("Rich");
+    let e1 = Ex { name: x };
+    let e2 = Ex { name: y };
+    let mut result = Vec::<Ex>::new();
+    result.insert(0, e1);
+
+    use rand::Rng;
+    let mut rng = rand::thread_rng();
+    let prob = rng.gen::<f32>();
+    if prob < 0.5 {
+        result.insert(0, e2);
+    }
+    result
+}
+
+pub fn ex2() -> std::io::Result<Vec<u8>> {
+    let mut bldr_1 = FlatBufferBuilder::new();
+    let image_uuid = Uuid::new_v4().to_string();
+    let image_stored_msg = make_image_stored_msg2(&mut bldr_1, &image_uuid).unwrap();
+
+    Ok(image_stored_msg)
+}
+
+pub fn compute_event_type_bytes_filters() -> std::io::Result<()> {
+    let mut bldr_1 = FlatBufferBuilder::new();
+    let mut bldr_2 = FlatBufferBuilder::new();
+    let mut bldr_3 = FlatBufferBuilder::new();
+    let mut bldr_4 = FlatBufferBuilder::new();
+
+    let image_uuid = Uuid::new_v4().to_string();
+    let image_format = "png".to_string();
+    let image = Vec::<u8>::new();
+
+    let new_image_msg =
+        make_new_image_msg(&mut bldr_1, &image_uuid, &image_format, &image).unwrap();
+
+    let mut scores = Vec::<ImageScore>::new();
+    scores.push(ImageScore {
+        label: "labrador".to_string(),
+        probability: 0.98,
+    });
+    let image_scored_msg = make_image_scored_msg(&mut bldr_2, &image_uuid, scores).unwrap();
+    let image_stored_msg = make_image_stored_msg(&mut bldr_3, &image_uuid).unwrap();
+    let image_deleted_msg = make_image_deleted_msg(&mut bldr_4, &image_uuid).unwrap();
+
+    let mut end_position = 0;
+
+    for i in 0..new_image_msg.len() {
+        // create a set of the bytes at position i
+        let mut bytes_seen = HashSet::<u8>::new();
+        // add the byte at position i to the set for every message
+        bytes_seen.insert(new_image_msg[i]);
+        bytes_seen.insert(image_scored_msg[i]);
+        bytes_seen.insert(image_stored_msg[i]);
+        bytes_seen.insert(image_deleted_msg[i]);
+        // if all the bytes at position i were unique, then we have found the end
+        // position and we can break out of the loop;
+        if bytes_seen.len() == 4 {
+            end_position = i;
+            break;
+        }
+    }
+
+    let new_message_filter = &new_image_msg[0..end_position + 1];
+    let image_scored_filter = &image_scored_msg[0..end_position + 1];
+    let image_stored_filter = &image_stored_msg[0..end_position + 1];
+    let image_deleted_filter = &image_deleted_msg[0..end_position + 1];
+
+    println!("NewImageMsg filter: {:?}", new_message_filter);
+    println!("ImageScoredMsg filter: {:?}", image_scored_filter);
+    println!("ImageStoredMsg filter: {:?}", image_stored_filter);
+    println!("ImageDeletedMsg filter: {:?}", image_deleted_filter);
+
+    Ok(())
+}
+
 pub fn get_event_type_bytes_filter(event_type: &str) -> Result<[u8; 20], String> {
     //TODO -- generate these programmatically
     if event_type == "NewImageEvent" {
         // first bytes of NewImageEvent
-        let filter_bytes: [u8; 20] = [12, 0, 0, 0, 8, 0, 12, 0, 7, 0, 8, 0, 8, 0, 0, 0, 0, 0, 0, 1];
+        let filter_bytes: [u8; 20] = [12, 0, 0, 0, 8, 0, 14, 0, 7, 0, 8, 0, 8, 0, 0, 0, 0, 0, 0, 1];
         return Ok(filter_bytes);
     } else if event_type == "ImageScoredEvent" {
-        let filter_bytes: [u8; 20] = [12, 0, 0, 0, 8, 0, 14, 0, 7, 0, 8, 0, 8, 0, 0, 0, 0, 0, 0, 2];
+        let filter_bytes: [u8; 20] = [12, 0, 0, 0, 8, 0, 12, 0, 7, 0, 8, 0, 8, 0, 0, 0, 0, 0, 0, 2];
         return Ok(filter_bytes);
     } else if event_type == "ImageStoredEvent" {
         // first bytes of ImageStoredEvent (TODO)
-        let filter_bytes: [u8; 20] = [12, 0, 0, 0, 8, 0, 12, 0, 7, 0, 8, 0, 8, 0, 0, 0, 0, 0, 0, 3];
+        let filter_bytes: [u8; 20] = [12, 0, 0, 0, 8, 0, 14, 0, 7, 0, 8, 0, 8, 0, 0, 0, 0, 0, 0, 3];
         return Ok(filter_bytes);
     } else if event_type == "ImageDeletedEvent" {
         // first bytes of ImageDeletedEvent (TODO)
-        let filter_bytes: [u8; 20] = [12, 0, 0, 0, 8, 0, 12, 0, 7, 0, 8, 0, 8, 0, 0, 0, 0, 0, 0, 4];
+        let filter_bytes: [u8; 20] = [12, 0, 0, 0, 8, 0, 14, 0, 7, 0, 8, 0, 8, 0, 0, 0, 0, 0, 0, 4];
         return Ok(filter_bytes);
     }
     Err("Invalid event_type".to_string())
 }
 
-pub fn send_new_image_event(
-    msg_socket: &mut Socket,
-    bldr: &mut FlatBufferBuilder,
-    image_uuid: &str,
-    image_format: &str,
-    image: &[u8],
-) -> Result<(), std::io::Error> {
+pub fn make_new_image_msg<'a>(
+    bldr: &'a mut FlatBufferBuilder,
+    image_uuid: &'a str,
+    image_format: &'a str,
+    image: &'a [u8],
+) -> Result<&'a [u8], std::io::Error> {
     bldr.reset();
-
     let args = NewImageEventArgs {
-        message_type: Default::default(),
         image_uuid: Some(bldr.create_string(image_uuid)),
         image_format: Some(bldr.create_string(image_format)),
         image: Some(bldr.create_vector(image)),
@@ -53,11 +138,52 @@ pub fn send_new_image_event(
     let event = Event::create(bldr, &event_args);
     bldr.finish(event, None);
 
+    Ok(bldr.finished_data())
+}
+
+// Avoids liftimes by returning an owned data structure, Vec<u8>
+// This function makes a copy of the message data using to_vec, so memory consumption
+// is likely to be greater. 
+pub fn make_new_image_msg_copy(
+    bldr: &mut FlatBufferBuilder,
+    image_uuid: & str,
+    image_format: & str,
+    image: & [u8],
+) -> std::io::Result<Vec<u8>> {
+    bldr.reset();
+    let args = NewImageEventArgs {
+        image_uuid: Some(bldr.create_string(image_uuid)),
+        image_format: Some(bldr.create_string(image_format)),
+        image: Some(bldr.create_vector(image)),
+    };
+    let new_image_event = NewImageEvent::create(bldr, &args);
+    let event_args = EventArgs {
+        event_type: EventType::NewImageEvent,
+        event: Some(new_image_event.as_union_value()),
+    };
+    let event = Event::create(bldr, &event_args);
+    bldr.finish(event, None);
+
+    // to_vec makes a copy of the data.
+    Ok(bldr.finished_data().to_vec())
+}
+
+
+pub fn send_new_image_event(
+    msg_socket: &mut Socket,
+    bldr: &mut FlatBufferBuilder,
+    image_uuid: &str,
+    image_format: &str,
+    image: &[u8],
+) -> Result<(), std::io::Error> {
+    bldr.reset();
+
+    // make the new image event message
+    let data = make_new_image_msg(bldr, image_uuid, image_format, image).unwrap();
     // send the new_event message over the messages socket
     msg_socket
-        .send(bldr.finished_data(), 0)
+        .send(data, 0)
         .expect("could not send new image event over zmq socket");
-
     Ok(())
 }
 
@@ -66,14 +192,12 @@ pub struct ImageScore {
     pub probability: f32,
 }
 
-pub fn send_image_scored_event(
-    msg_socket: &mut Socket,
-    bldr: &mut FlatBufferBuilder,
-    image_uuid: &str,
+pub fn make_image_scored_msg<'a>(
+    bldr: &'a mut FlatBufferBuilder,
+    image_uuid: &'a str,
     scores: Vec<ImageScore>,
-) -> Result<(), std::io::Error> {
+) -> Result<&'a [u8], std::io::Error> {
     bldr.reset();
-
     // create the ImageLabelScoreArgs from scores
     let mut image_label_scores = Vec::<WIPOffset<ImageLabelScore>>::new();
     for score in scores {
@@ -93,7 +217,6 @@ pub fn send_image_scored_event(
 
     // now create the ImageScoredEventArgs
     let args = ImageScoredEventArgs {
-        message_type: Default::default(),
         image_uuid: Some(bldr.create_string(image_uuid)),
         scores: Some(bldr.create_vector(&image_label_scores)),
     };
@@ -106,23 +229,34 @@ pub fn send_image_scored_event(
     let event = Event::create(bldr, &event_args);
     bldr.finish(event, None);
 
+    let data = bldr.finished_data();
+
+    Ok(data)
+}
+
+pub fn send_image_scored_event(
+    msg_socket: &mut Socket,
+    bldr: &mut FlatBufferBuilder,
+    image_uuid: &str,
+    scores: Vec<ImageScore>,
+) -> Result<(), std::io::Error> {
+    let data = make_image_scored_msg(bldr, image_uuid, scores).unwrap();
+
     // send the new_event message over the messages socket
     msg_socket
-        .send(bldr.finished_data(), 0)
+        .send(data, 0)
         .expect("could not send image scored event over zmq socket");
 
     Ok(())
 }
 
-pub fn send_image_stored_event(
-    msg_socket: &mut Socket,
-    bldr: &mut FlatBufferBuilder,
-    image_uuid: &str,
-) -> Result<(), std::io::Error> {
+pub fn make_image_stored_msg<'a>(
+    bldr: &'a mut FlatBufferBuilder,
+    image_uuid: &'a str,
+) -> Result<&'a [u8], std::io::Error> {
     bldr.reset();
 
     let args = ImageStoredEventArgs {
-        message_type: Default::default(),
         image_uuid: Some(bldr.create_string(image_uuid)),
     };
     let image_stored_event = ImageStoredEvent::create(bldr, &args);
@@ -134,23 +268,51 @@ pub fn send_image_stored_event(
     let event = Event::create(bldr, &event_args);
     bldr.finish(event, None);
 
-    // send the new_event message over the messages socket
-    msg_socket
-        .send(bldr.finished_data(), 0)
-        .expect("could not send image stored event over zmq socket");
-
-    Ok(())
+    Ok(bldr.finished_data())
 }
 
-pub fn send_image_deleted_event(
+pub fn make_image_stored_msg2(
+    bldr: &mut FlatBufferBuilder,
+    image_uuid: &str,
+) -> std::io::Result<Vec<u8>> {
+    bldr.reset();
+
+    let args = ImageStoredEventArgs {
+        image_uuid: Some(bldr.create_string(image_uuid)),
+    };
+    let image_stored_event = ImageStoredEvent::create(bldr, &args);
+
+    let event_args = EventArgs {
+        event_type: EventType::ImageStoredEvent,
+        event: Some(image_stored_event.as_union_value()),
+    };
+    let event = Event::create(bldr, &event_args);
+    bldr.finish(event, None);
+
+    Ok(bldr.finished_data().to_vec())
+}
+
+pub fn send_image_stored_event(
     msg_socket: &mut Socket,
     bldr: &mut FlatBufferBuilder,
     image_uuid: &str,
 ) -> Result<(), std::io::Error> {
+    // make the image stored message
+    let data = make_image_stored_msg(bldr, image_uuid).unwrap();
+    // send the new_event message over the messages socket
+    msg_socket
+        .send(data, 0)
+        .expect("could not send image stored event over zmq socket");
+    Ok(())
+}
+
+pub fn make_image_deleted_msg<'a>(
+    bldr: &'a mut FlatBufferBuilder,
+    image_uuid: &'a str,
+) -> Result<&'a [u8], std::io::Error> {
     bldr.reset();
 
     let args = ImageDeletedEventArgs {
-        message_type: Default::default(),
         image_uuid: Some(bldr.create_string(image_uuid)),
     };
     let image_deleted_event = ImageDeletedEvent::create(bldr, &args);
@@ -161,11 +323,20 @@ pub fn send_image_deleted_event(
     };
     let event = Event::create(bldr, &event_args);
     bldr.finish(event, None);
+
+    Ok(bldr.finished_data())
+}
+
+pub fn send_image_deleted_event(
+    msg_socket: &mut Socket,
+    bldr: &mut FlatBufferBuilder,
+    image_uuid: &str,
+) -> Result<(), std::io::Error> {
+    let data = make_image_deleted_msg(bldr, image_uuid).unwrap();
     // send the new_event message over the messages socket
     msg_socket
-        .send(bldr.finished_data(), 0)
+        .send(data, 0)
         .expect("could not send image deleted event over zmq socket");
-
     Ok(())
 }
 
@@ -191,6 +362,13 @@ mod test {
     use uuid::Uuid;
 
     #[test]
+    fn test_compute_event_type_bytes_filters() -> std::io::Result<()> {
+        compute_event_type_bytes_filters().unwrap();
+
+        Ok(())
+    }
+
+    #[test]
     fn test_write_new_image_event_to_file() -> std::io::Result<()> {
         let mut bldr = FlatBufferBuilder::new();
 
@@ -199,7 +377,6 @@ mod test {
         let image = Vec::<u8>::new();
 
         let args = NewImageEventArgs {
-            message_type: Default::default(),
             image_uuid: Some(bldr.create_string(&image_uuid)),
             image_format: Some(bldr.create_string(&image_format)),
             image: Some(bldr.create_vector(&image)),
@@ -251,7 +428,6 @@ mod test {
         let image_uuid = Uuid::new_v4();
 
         let args = ImageStoredEventArgs {
-            message_type: Default::default(),
             image_uuid: Some(bldr.create_string(&image_uuid.to_string())),
         };
         let image_stored_event = ImageStoredEvent::create(&mut bldr, &args);
@@ -328,7 +504,6 @@ mod test {
 
         // now create the ImageScoredEventArgs
         let args = ImageScoredEventArgs {
-            message_type: Default::default(),
             image_uuid: Some(bldr.create_string(&image_uuid.to_string())),
             scores: Some(bldr.create_vector(&image_label_scores)),
         };
@@ -380,7 +555,6 @@ mod test {
         let image_uuid = Uuid::new_v4();
 
         let args = ImageDeletedEventArgs {
-            message_type: Default::default(),
             image_uuid: Some(bldr.create_string(&image_uuid.to_string())),
         };
         let image_deleted_event = ImageDeletedEvent::create(&mut bldr, &args);

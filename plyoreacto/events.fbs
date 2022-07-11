@@ -10,8 +10,6 @@ union EventType {NewImageEvent, ImageScoredEvent, ImageStoredEvent, ImageDeleted
 
 // The NewImageEvent 
 table NewImageEvent {
-
-  message_type:string = "new_image";
   image_uuid:string;
   image_format:string;
   image:[ubyte];
@@ -25,21 +23,16 @@ table ImageLabelScore {
 }
 
 table ImageScoredEvent {
-  message_type:string = "image_scored";
   image_uuid:string;
   scores:[ImageLabelScore];
 }
 
 table ImageStoredEvent {
-
-  message_type:string = "image_stored";
   image_uuid:string;
 
 }
 
 table ImageDeletedEvent {
-
-  message_type:string = "image_deleted";
   image_uuid:string;
 
 }
