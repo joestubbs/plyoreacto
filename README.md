@@ -18,12 +18,15 @@ Flatbuffers. For this reason, `flatbuffers` appears as a Cargo dependency.
 
 ## Repository Structure and Name
 
-The current Rust implementation of the engine and example Rust plugins live in the `plyoreacto` directory within the project root. This is where new development will take place going forward.
-Look in this directory for instructions on building the Rust code and running the "example". 
+The current Rust implementation of the engine and example Rust plugins live in the `plyoreacto` directory within the project root. This is where new development will take place going forward. Inside this directory is also the
+`pyobserver` directory which contains an example Python plugin. 
+Look in this directory for instructions on building the Rust code, Docker images, and running the "example". 
 
-The `proto` directory contains an initial prototype of the engine, written in Python, as well as two prototype Python plugins. The Python engine can pretty much be ignored at this point. The plugins can 
-still be used when running the "demo" (as apposed to the "example"), but soon those will also be 
-replaced. Look in this directory for instructions on building the Python images. 
+The `proto` directory contains an initial prototype of the engine, written in Python, as well as two prototype Python plugins. The Python engine can be ignored at this point, unless you just prefer to read Python. The 
+plugins were used when running the initial "demo" (as apposed to the "example"), which used basic strings 
+for messages, but these have been replaces also. As mentioned above, the example now includes a Python 
+plugin (`pyobserver`) that uses the Flatbuffers messages. We keep the `proto` directory here for 
+posterity. 
 
 The name is a portmanteau of "plyo", the Greek term meaning "to increase", and
 "reactor", as in the [reactor pattern](https://en.wikipedia.org/wiki/Reactor_pattern), which was an inspiration for the design, but is also meant to suggest the flexibility ("pliability") provided by supporting multiple programming languages.

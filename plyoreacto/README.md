@@ -1,7 +1,8 @@
 # Rust Engine and Plugins
 
 This directory contains the code for the Rust engine and Rust example plugins. This is where new 
-development will take place going forward.
+development will take place going forward. It also contains the `pyobserver` directory with code for a
+Python plugin used in the "example". 
 
 
 ## Prerequisites
@@ -17,19 +18,28 @@ $ apt-get install libzmq3-dev
 
 ## Running the example
 
-The project currently includes an example with 3 plugins, all written in Rust and
-compiled into the main engine, that use inproc sockets for communication and that 
-pass flatbuffers messages. It should be enough to build the Rust engine Docker image and run it to see the full example. Using the make commands:
+The project currently includes an example with 4 plugins, 3 written in Rust and
+compiled into the main engine, that use inproc sockets for communication, and one plugin written in Python
+that uses TCP sockets. All plugins make use of Flatbuffers for message serialization.
+To run the full example, you will need to build the Rust engine Docker image (with Rust plugins compiled in) as
+well as the Python plugin Docker image. We include a Makefile with commands to make this easier:
 
 ```
+# build the two Docker images
 $ make build
+
+# run the example
 $ make up-engine
 ```
 
 
 ## Running the demo
 There is also a more simple "demo" which includes three plugins, one in Rust and two in Python,
-and that use simple strings for messages. Running the demo currently requires a small code
+and that use simple strings for messages. We're not actively maintaining this "demo" since the 
+"example" now contains plugins in multiple languages, but here is what *might* work for running
+the demo:
+
+Running the demo currently requires a small code
 change to the `main.rs` file -- comment out the line that starts the example engine and recompile.
 
 In order to run the demo, you also need to build the Python image in the `proto` directory. That
