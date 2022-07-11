@@ -9,6 +9,12 @@ use flatbuffers::FlatBufferBuilder;
 use zmq::Socket;
 
 // Basic structure of a plugin configuration.
+
+struct ExternalPluginConfig {
+    // Every plugin gets a unique id
+    plugin_id: i32,
+}
+
 struct PluginConfig<'a> {
     // Every plugin gets a unique id
     plugin_id: i32,
@@ -38,6 +44,13 @@ const PLUGINS: [PluginConfig; 3] = [
         start_function: image_store_plugin::start,
     },
 ];
+
+const EXTERNAL_PLUGINS: [ExternalPluginConfig; 1] = [
+    ExternalPluginConfig {
+        plugin_id: 3,
+    }
+];
+
 
 fn get_outgoing_socket(context: &zmq::Context) -> std::io::Result<Socket> {
     let outgoing = context
@@ -143,7 +156,7 @@ where
 }
 
 fn sync_plugins(context: zmq::Context) -> std::io::Result<()> {
-    let total_subscribers = 3;
+    let total_subscribers = PLUGINS.len() + EXTERNAL_PLUGINS.len();
     let mut sync_sockets = Vec::<zmq::Socket>::new();
 
     // wait for all plugins to sync
@@ -219,6 +232,7 @@ pub fn event_engine() -> std::io::Result<()> {
 
     // proxy from incoming to outgoing sockets;
     // this call blocks forever
+    println!("Engine starting main proxy");
     let _result = zmq::proxy(&incoming, &outgoing)
         .expect("Engine got error running proxy; socket was closed?");
 
