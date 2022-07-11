@@ -5,8 +5,8 @@ networks:
     driver: bridge
 
 services:
-  broker:
-    container_name: broker
+  engine:
+    container_name: engine
     image: jstubbs/plyoreacto
     # we don't need to bind ports since the plugin containers talk to the broker on the
     # docker0 interface using the built-in dns based on the service name ("broker").
@@ -16,16 +16,22 @@ services:
     networks:
       - zmqevents
 
-  pluginA:
-    container_name: pluginA
-    image: jstubbs/pyzmqevents
-    command: ["/pluginA.py"]
+  pyobserver:
+    container_name: pyobserver
+    image: jstubbs/pyobserver
     networks:
       - zmqevents
+      
+  # pluginA:
+  #   container_name: pluginA
+  #   image: jstubbs/pyzmqevents
+  #   command: ["/pluginA.py"]
+  #   networks:
+  #     - zmqevents
 
-  pluginB:
-    container_name: pluginB
-    image: jstubbs/pyzmqevents
-    command: ["/pluginB.py"]
-    networks:
-      - zmqevents
+  # pluginB:
+  #   container_name: pluginB
+  #   image: jstubbs/pyzmqevents
+  #   command: ["/pluginB.py"]
+  #   networks:
+  #     - zmqevents

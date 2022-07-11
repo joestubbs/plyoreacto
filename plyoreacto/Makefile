@@ -1,13 +1,13 @@
 build:
-	docker build -t jstubbs/plyoreacto .
+	docker build -t jstubbs/plyoreacto .; cd pyobserver; docker build -t jstubbs/pyobserver .; cd ..
 
 down:
 	docker-compose down
 
 up-demo: 
-	docker-compose up
+	ECHO "DEMO no longer supported.."
 
 up-engine:
-	docker-compose up broker
+	docker-compose up
 	
 all: down build up
