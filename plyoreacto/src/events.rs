@@ -11,39 +11,8 @@ use super::events_generated::events::{
     ImageStoredEventArgs, NewImageEvent, NewImageEventArgs,
 };
 
-pub struct Ex {
-    name: String,
-    // name: [&'a i32],
-    // image: [i32],
-    // image: [u8],
-    // image: String,
-}
-
-pub fn example() -> Vec<Ex> {
-    let x = String::from("Joe");
-    let y = String::from("Rich");
-    let e1 = Ex { name: x };
-    let e2 = Ex { name: y };
-    let mut result = Vec::<Ex>::new();
-    result.insert(0, e1);
-
-    use rand::Rng;
-    let mut rng = rand::thread_rng();
-    let prob = rng.gen::<f32>();
-    if prob < 0.5 {
-        result.insert(0, e2);
-    }
-    result
-}
-
-pub fn ex2() -> std::io::Result<Vec<u8>> {
-    let mut bldr_1 = FlatBufferBuilder::new();
-    let image_uuid = Uuid::new_v4().to_string();
-    let image_stored_msg = make_image_stored_msg2(&mut bldr_1, &image_uuid).unwrap();
-
-    Ok(image_stored_msg)
-}
-
+// todo -- need to add this to build.rs
+#[allow(dead_code)]
 pub fn compute_event_type_bytes_filters() -> std::io::Result<()> {
     let mut bldr_1 = FlatBufferBuilder::new();
     let mut bldr_2 = FlatBufferBuilder::new();
@@ -57,11 +26,10 @@ pub fn compute_event_type_bytes_filters() -> std::io::Result<()> {
     let new_image_msg =
         make_new_image_msg(&mut bldr_1, &image_uuid, &image_format, &image).unwrap();
 
-    let mut scores = Vec::<ImageScore>::new();
-    scores.push(ImageScore {
+    let scores = vec![ImageScore {
         label: "labrador".to_string(),
         probability: 0.98,
-    });
+    }];
     let image_scored_msg = make_image_scored_msg(&mut bldr_2, &image_uuid, scores).unwrap();
     let image_stored_msg = make_image_stored_msg(&mut bldr_3, &image_uuid).unwrap();
     let image_deleted_msg = make_image_deleted_msg(&mut bldr_4, &image_uuid).unwrap();
@@ -143,12 +111,13 @@ pub fn make_new_image_msg<'a>(
 
 // Avoids liftimes by returning an owned data structure, Vec<u8>
 // This function makes a copy of the message data using to_vec, so memory consumption
-// is likely to be greater. 
+// is likely to be greater.
+#[allow(dead_code)]
 pub fn make_new_image_msg_copy(
     bldr: &mut FlatBufferBuilder,
-    image_uuid: & str,
-    image_format: & str,
-    image: & [u8],
+    image_uuid: &str,
+    image_format: &str,
+    image: &[u8],
 ) -> std::io::Result<Vec<u8>> {
     bldr.reset();
     let args = NewImageEventArgs {
@@ -167,7 +136,6 @@ pub fn make_new_image_msg_copy(
     // to_vec makes a copy of the data.
     Ok(bldr.finished_data().to_vec())
 }
-
 
 pub fn send_new_image_event(
     msg_socket: &mut Socket,
@@ -271,7 +239,8 @@ pub fn make_image_stored_msg<'a>(
     Ok(bldr.finished_data())
 }
 
-pub fn make_image_stored_msg2(
+#[allow(dead_code)]
+pub fn make_image_stored_msg_copy(
     bldr: &mut FlatBufferBuilder,
     image_uuid: &str,
 ) -> std::io::Result<Vec<u8>> {
@@ -476,16 +445,16 @@ mod test {
     fn test_write_image_scored_event_to_file() -> std::io::Result<()> {
         let mut bldr = FlatBufferBuilder::new();
         let image_uuid = Uuid::new_v4();
-        let mut scores = Vec::<ImageScore>::new();
-        scores.push(ImageScore {
-            label: "labrador".to_string(),
-            probability: 0.98,
-        });
-        scores.push(ImageScore {
-            label: "golden retriever".to_string(),
-            probability: 0.02,
-        });
-
+        let scores = vec![
+            ImageScore {
+                label: "labrador".to_string(),
+                probability: 0.98,
+            },
+            ImageScore {
+                label: "golden retriever".to_string(),
+                probability: 0.02,
+            },
+        ];
         let mut image_label_scores = Vec::<WIPOffset<ImageLabelScore>>::new();
         for score in scores {
             let label = Some(bldr.create_string(&score.label));
