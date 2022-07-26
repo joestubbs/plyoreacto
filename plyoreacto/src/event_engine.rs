@@ -12,6 +12,8 @@ use zmq::Socket;
 
 struct ExternalPluginConfig {
     // Every plugin gets a unique id
+    // todo -- this is not currently used but should be in the future
+    #[allow(dead_code)]
     plugin_id: i32,
 }
 
@@ -45,12 +47,7 @@ const PLUGINS: [PluginConfig; 3] = [
     },
 ];
 
-const EXTERNAL_PLUGINS: [ExternalPluginConfig; 1] = [
-    ExternalPluginConfig {
-        plugin_id: 3,
-    }
-];
-
+const EXTERNAL_PLUGINS: [ExternalPluginConfig; 1] = [ExternalPluginConfig { plugin_id: 3 }];
 
 fn get_outgoing_socket(context: &zmq::Context) -> std::io::Result<Socket> {
     let outgoing = context
